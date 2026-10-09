@@ -82,9 +82,19 @@ def main():
 
     for heater in heaters or []:
         hid = heater.get("heater_id")
-        status, zones = request("GET", f"/v1/accounts/{aid}/heaters/{hid}/zones", token)
+        base = f"/v1/accounts/{aid}/heaters/{hid}"
+        for name in ("capabilities", "presets"):
+            status, data = request("GET", f"{base}/{name}", token)
+            print(f"# {name}:", status)
+            print(json.dumps(show(data), indent=2))
+        status, zones = request("GET", f"{base}/zones", token)
         print("# zones:", status)
         print(json.dumps(show(zones), indent=2))
+        for zone in zones or []:
+            n = zone.get("zone_number")
+            status, data = request("GET", f"{base}/zones/{n}/scheme/week", token)
+            print(f"# zone {n} week scheme:", status)
+            print(json.dumps(show(data), indent=2))
 
 
 if __name__ == "__main__":

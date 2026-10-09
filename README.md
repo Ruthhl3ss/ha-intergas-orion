@@ -66,7 +66,8 @@ and password.
 
 - Signs in with `POST /v1/accounts/authenticate` and uses the returned JWT as a
   bearer token. When the token expires (about an hour) it signs in again.
-- Polls the heaters and zones every 60 seconds.
+- Polls the heaters and zones every 30 seconds by default; change it under
+  Settings → Devices & services → Intergas → Configure (15–300 seconds).
 - Setting a temperature sends `PATCH .../zones/{n}` with
   `{"target_temperature": <value>}`. As in the app, changing the setpoint while
   a week schedule is active switches to manual mode until the next schedule

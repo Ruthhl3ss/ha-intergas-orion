@@ -44,5 +44,16 @@
         "name": "Lockout code"
       }
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "description": "How often to read the thermostat from the Intergas cloud. Changes made on the thermostat or in the app show up in Home Assistant after at most this long.",
+        "data": {
+          "scan_interval": "Refresh interval (seconds)"
+        }
+      }
+    }
   }
 }

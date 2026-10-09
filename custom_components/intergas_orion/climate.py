@@ -1,6 +1,8 @@
 """Climate platform for Intergas Orion — one entity per zone."""
 from __future__ import annotations
 
+from time import monotonic
+
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
@@ -13,6 +15,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .api import IntergasApiError
@@ -25,6 +28,11 @@ from .const import (
     MODE_WEEK,
 )
 from .coordinator import IntergasCoordinator
+
+# Seconds to wait before re-reading after a write, and to keep showing the
+# requested setpoint if the cloud has not reported it yet.
+CONFIRM_DELAY = 15
+PENDING_TIMEOUT = 120
 
 
 async def async_setup_entry(
@@ -56,6 +64,10 @@ class IntergasZoneClimate(CoordinatorEntity[IntergasCoordinator], ClimateEntity)
         self._heater_id = heater_id
         self._zone_number = zone_number
         self._attr_unique_id = f"{heater_id}_zone{zone_number}"
+        # The API accepts a setpoint with 202 and applies it asynchronously via the
+        # gateway, so show the requested value until the cloud reports it.
+        self._pending_target: float | None = None
+        self._pending_until = 0.0
 
     # --- data accessors ---------------------------------------------------
     @property
@@ -95,7 +107,13 @@ class IntergasZoneClimate(CoordinatorEntity[IntergasCoordinator], ClimateEntity)
 
     @property
     def target_temperature(self) -> float | None:
-        return self._zone.get("temperature_heater_setpoint")
+        reported = self._zone.get("temperature_heater_setpoint")
+        if self._pending_target is not None:
+            if reported == self._pending_target or monotonic() > self._pending_until:
+                self._pending_target = None
+            else:
+                return self._pending_target
+        return reported
 
     @property
     def hvac_mode(self) -> HVACMode:
@@ -130,4 +148,12 @@ class IntergasZoneClimate(CoordinatorEntity[IntergasCoordinator], ClimateEntity)
             )
         except IntergasApiError as err:
             raise HomeAssistantError(f"Setting the temperature failed: {err}") from err
+        self._pending_target = round(float(temperature), 1)
+        self._pending_until = monotonic() + PENDING_TIMEOUT
+        self.async_write_ha_state()
+        self.async_on_remove(
+            async_call_later(self.hass, CONFIRM_DELAY, self._confirm_refresh)
+        )
+
+    async def _confirm_refresh(self, _now) -> None:
         await self.coordinator.async_request_refresh()

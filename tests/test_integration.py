@@ -69,7 +69,7 @@ async def test_entities(hass: HomeAssistant, api) -> None:
 async def test_set_temperature(hass: HomeAssistant, api) -> None:
     mock_cloud(api)
     zone_url = f"{API}/v1/accounts/{AID}/heaters/{HID}/zones/1"
-    api.patch(zone_url, status=200, payload={})
+    api.patch(zone_url, status=202, body=b"")
     await _setup(hass)
     entity_id = hass.states.async_all("climate")[0].entity_id
     await hass.services.async_call(
@@ -78,6 +78,37 @@ async def test_set_temperature(hass: HomeAssistant, api) -> None:
     calls = api.requests[("PATCH", URL(zone_url))]
     assert calls[0].kwargs["json"] == {"target_temperature": 21.5}
     assert calls[0].kwargs["headers"]["Authorization"] == "Bearer jwt-1"
+    # The cloud applies it asynchronously (202): keep showing the requested value.
+    assert hass.states.get(entity_id).attributes["temperature"] == 21.5
+
+
+async def test_pending_setpoint_expires(hass: HomeAssistant, api, freezer) -> None:
+    """If the cloud never reports the new setpoint, fall back to the reported one."""
+    from datetime import timedelta
+
+    from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
+    from custom_components.intergas_orion import climate
+
+    mock_cloud(api)
+    api.patch(f"{API}/v1/accounts/{AID}/heaters/{HID}/zones/1", status=202, body=b"")
+    await _setup(hass)
+    entity_id = hass.states.async_all("climate")[0].entity_id
+    await hass.services.async_call(
+        "climate", "set_temperature", {"entity_id": entity_id, "temperature": 23}, blocking=True
+    )
+    assert hass.states.get(entity_id).attributes["temperature"] == 23
+    # freezegun swaps monotonic for a date-based clock, so use inf for "past the timeout".
+    climate.monotonic = lambda: float("inf")
+    try:
+        freezer.tick(timedelta(seconds=climate.CONFIRM_DELAY + 1))
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+        assert hass.states.get(entity_id).attributes["temperature"] == 20.0
+    finally:
+        from time import monotonic
+
+        climate.monotonic = monotonic
 
 
 async def test_token_expiry_reauths(hass: HomeAssistant, api) -> None:
@@ -113,3 +144,21 @@ async def test_unload(hass: HomeAssistant, api) -> None:
     entry = await _setup(hass)
     assert await hass.config_entries.async_unload(entry.entry_id)
     assert entry.state is config_entries.ConfigEntryState.NOT_LOADED
+
+
+async def test_options_scan_interval(hass: HomeAssistant, api) -> None:
+    from datetime import timedelta
+
+    mock_cloud(api)
+    entry = await _setup(hass)
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    assert coordinator.update_interval == timedelta(seconds=30)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"scan_interval": 20}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    assert coordinator.update_interval == timedelta(seconds=20)
