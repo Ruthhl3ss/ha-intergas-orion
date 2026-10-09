@@ -1,0 +1,48 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "description": "Sign in with your Intergas Comfort Touch account.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate",
+        "description": "The password for {email} is no longer accepted. Enter the current Comfort Touch password.",
+        "data": {
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid email or password.",
+      "cannot_connect": "Could not reach the Intergas cloud.",
+      "wrong_platform": "This account is not on the new (ARCH_2_0) platform. Use the built-in 'incomfort' integration for the legacy LAN2RF gateway."
+    },
+    "abort": {
+      "already_configured": "This account is already set up.",
+      "reauth_successful": "Re-authentication was successful."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "heater_rssi": {
+        "name": "Heater signal"
+      },
+      "gateway_rssi": {
+        "name": "Gateway signal"
+      },
+      "ch_water_pressure": {
+        "name": "Water pressure"
+      },
+      "ch_temperature": {
+        "name": "Central heating temperature"
+      },
+      "lockout_code": {
+        "name": "Lockout code"
+      }
+    }
+  }
+}

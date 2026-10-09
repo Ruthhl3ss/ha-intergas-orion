@@ -1,0 +1,11 @@
+{
+  "domain": "intergas_orion",
+  "name": "Intergas (Orion / Comfort Touch)",
+  "codeowners": ["@ldanicel"],
+  "config_flow": true,
+  "documentation": "https://github.com/ldanicel/ha-intergas-orion",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/ldanicel/ha-intergas-orion/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

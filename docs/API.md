@@ -1,0 +1,107 @@
+# Intergas Orion API notes
+
+What is known about the cloud API used by the Intergas Comfort Touch app for
+the new Intergas gateway. It is undocumented: everything here comes from
+observing the app and the API's own responses, and may change at any time.
+
+## The new gateway
+
+- The new Wi-Fi gateway (an ESP32-based "WLAN2RF" module) has no usable local
+  API. It exposes an HTTP server on port 80 that answers every path with 404,
+  including the `/protect/*.json` paths of the old LAN2RF gateway.
+- It keeps one long-lived MQTT-over-TLS connection (port 8883) to the Intergas
+  cloud and does all its work through it.
+- So unlike the old gateway (used by Home Assistant's built-in `incomfort`
+  integration), it can only be controlled through the cloud API below.
+
+## Two platforms
+
+The app chooses a backend per account:
+
+```
+POST /v1/accounts/platform_check   {"email": "..."}   ->  {"platform": "ARCH_1_0" | "ARCH_2_0"}
+```
+
+| | ARCH_1_0 (legacy) | ARCH_2_0 "Orion" (new) |
+|---|---|---|
+| Base URL | `https://api.intergasdata.nl` | `https://app-api.orion.intergas.nl` |
+| Auth | session cookie + CSRF | JWT bearer |
+| Paths | `/heaters/api/...` | `/v1/accounts/...` |
+
+This integration only supports `ARCH_2_0`. The backend is FastAPI (validation
+errors come back as HTTP 422 with Pydantic error bodies).
+
+## Authentication
+
+```
+POST /v1/accounts/authenticate   {"email": "...", "password": "..."}
+  -> {"jwt": "<ES256 JWT>", "account_id": "<id>", "role": "..."}
+```
+
+- The token is in the `jwt` field (not `access_token`).
+- Send it as `Authorization: Bearer <jwt>` on every other call.
+- It is valid for about an hour. `POST /v1/accounts/refresh` exists; the
+  integration does not use it and simply signs in again on 401/403.
+
+## Resources
+
+`{aid}` is the `account_id` from the authenticate response, `{hid}` a heater
+id, `{n}` a zone number.
+
+```
+GET   /v1/accounts/{aid}
+GET   /v1/accounts/{aid}/settings
+GET   /v1/accounts/{aid}/heaters
+GET   /v1/accounts/{aid}/heaters/{hid}
+GET   /v1/accounts/{aid}/heaters/{hid}/capabilities
+GET   /v1/accounts/{aid}/heaters/{hid}/statistics
+GET   /v1/accounts/{aid}/heaters/{hid}/presets
+GET   /v1/accounts/{aid}/heaters/{hid}/dhw-buffer-tank
+GET   /v1/accounts/{aid}/heaters/{hid}/zones
+GET   /v1/accounts/{aid}/heaters/{hid}/zones/{n}
+PATCH /v1/accounts/{aid}/heaters/{hid}/zones/{n}
+GET   /v1/accounts/{aid}/heaters/{hid}/zones/{n}/scheme/week
+GET   /v1/accounts/{aid}/gateways/{gid}/pairing-status
+```
+
+### Heater
+
+Fields used by the integration:
+
+| Field | Meaning |
+|---|---|
+| `heater_id` | heater id |
+| `state.mode` | `STANDBY`, `RUNNING_MANUAL_TEMPERATURE`, `RUNNING_WEEK_SCHEME`, `RUNNING_HOLIDAY_SCHEME` |
+| `state.is_heating` | burner active |
+| `state.current_lockout_code` | lockout / fault code |
+| `hardware.type`, `hardware.serial_number`, `hardware.firmware_version` | device info |
+| `number_of_zones` | zone count |
+| `radio_frequency_performance.gateway_rssi`, `.heater_rssi` | RF signal strength |
+| `ch_water_pressure`, `ch_temperature` | reported by some boiler models only |
+
+### Zone
+
+| Field | Meaning |
+|---|---|
+| `zone_number` | zone number, used in paths |
+| `name` | zone name |
+| `temperature_room` | current room temperature |
+| `temperature_heater_setpoint` | current target temperature |
+| `thermostat_type` | thermostat model |
+
+### Setting the temperature
+
+```
+PATCH /v1/accounts/{aid}/heaters/{hid}/zones/{n}
+{"target_temperature": 21.0}
+```
+
+This is the `ZoneUpdate` model from the API's schema. Other fields seen in the
+app (`preset_id`, `schedule_enabled`, ...) have not been explored yet, and
+neither has the request body for changing the mode.
+
+## Help wanted
+
+Captures from multi-zone installations, other boiler models, and the requests
+the app sends when changing mode, schedule, presets or holiday mode. Please
+remove email addresses, serial numbers, ids and tokens before sharing.
