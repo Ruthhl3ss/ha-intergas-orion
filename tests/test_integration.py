@@ -214,7 +214,7 @@ async def test_presets(hass: HomeAssistant, api) -> None:
     api.patch(ZONE_URL, status=202, body=b"")
     await _setup(hass)
     state = hass.states.async_all("climate")[0]
-    assert state.attributes["preset_modes"] == ["Away", "Comfort", "Home"]
+    assert state.attributes["preset_modes"] == ["Standby", "Comfort", "Home"]
     # Manual mode at 20.0 matches the "Home" preset.
     assert state.attributes["preset_mode"] == "Home"
     assert "next_schedule_change" in state.attributes

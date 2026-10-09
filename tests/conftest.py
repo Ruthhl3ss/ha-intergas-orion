@@ -19,7 +19,7 @@ STATISTICS = {"ch_gas_consumption": 2.5, "dhw_gas_consumption": 80.25, "ch_gas_o
               "dhw_gas_operational_hours": 35, "device_poweron_hours": 2584, "ch_water_pressure": 1.57}
 WEATHER = {"conditions": "BROKEN_CLOUDS", "nighttime": False, "temperature": 16.9}
 PRESETS = [
-    {"name": "Away", "temperature": 17.5, "color": "COLOR_STANDBY", "type": "STANDBY", "preset_id": "p-away"},
+    {"name": "DEFAULT_STANDBY", "temperature": 17.5, "color": "COLOR_STANDBY", "type": "STANDBY", "preset_id": "p-away"},
     {"name": "Comfort", "temperature": 21.5, "color": "COLOR_YELLOW", "type": "COMFORT", "preset_id": "p-comfort"},
     {"name": "Home", "temperature": 20.0, "color": "COLOR_WHITE", "type": "CUSTOM", "preset_id": "p-home"},
 ]

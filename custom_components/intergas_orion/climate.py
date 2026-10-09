@@ -52,7 +52,16 @@ async def async_setup_entry(
 
 
 def preset_label(preset: dict) -> str:
-    return preset.get("name") or str(preset.get("type", "preset")).title()
+    """Display name of a preset.
+
+    The built-in presets are named with codes the app translates, such as
+    DEFAULT_STANDBY and DEFAULT_COMFORT; show those as "Standby" / "Comfort".
+    """
+    name = preset.get("name") or ""
+    if not name or name.startswith("DEFAULT_"):
+        name = name.removeprefix("DEFAULT_") or str(preset.get("type", "preset"))
+        return name.replace("_", " ").title()
+    return name
 
 
 class IntergasZoneClimate(IntergasEntity, ClimateEntity):
