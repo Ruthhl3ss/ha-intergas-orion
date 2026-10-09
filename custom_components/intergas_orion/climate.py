@@ -10,10 +10,12 @@ from homeassistant.components.climate import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .api import IntergasApiError
 from .const import (
     DOMAIN,
     MAX_TEMP,
@@ -122,7 +124,10 @@ class IntergasZoneClimate(CoordinatorEntity[IntergasCoordinator], ClimateEntity)
         temperature = kwargs.get(ATTR_TEMPERATURE)
         if temperature is None:
             return
-        await self.coordinator.client.set_zone_temperature(
-            self._heater_id, self._zone_number, temperature
-        )
+        try:
+            await self.coordinator.client.set_zone_temperature(
+                self._heater_id, self._zone_number, temperature
+            )
+        except IntergasApiError as err:
+            raise HomeAssistantError(f"Setting the temperature failed: {err}") from err
         await self.coordinator.async_request_refresh()

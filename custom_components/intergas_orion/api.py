@@ -19,6 +19,9 @@ _LOGGER = logging.getLogger(__name__)
 
 REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=20)
 
+# Never log these exchanges: they carry the email, password and JWT.
+_UNLOGGED_PATHS = ("/v1/accounts/authenticate", "/v1/accounts/platform_check")
+
 
 class IntergasAuthError(Exception):
     """Raised when authentication fails (bad credentials)."""
@@ -38,6 +41,7 @@ class IntergasOrionClient:
         self._jwt: str | None = None
         self._account_id: str | None = None
         self._auth_lock = asyncio.Lock()
+        self.last_error: str | None = None
 
     @property
     def account_id(self) -> str | None:
@@ -57,9 +61,15 @@ class IntergasOrionClient:
             async with self._session.request(
                 method, url, json=json_body, headers=headers, timeout=REQUEST_TIMEOUT
             ) as resp:
-                if resp.status >= 400:
-                    return resp.status, None
                 body = await resp.read()
+                if path not in _UNLOGGED_PATHS:
+                    _LOGGER.debug(
+                        "%s %s %s -> HTTP %s: %s",
+                        method, path, json_body, resp.status, body[:2000],
+                    )
+                if resp.status >= 400:
+                    self.last_error = body[:500].decode(errors="replace")
+                    return resp.status, None
                 if not body:
                     return resp.status, None
                 return resp.status, await resp.json(content_type=None)
@@ -118,7 +128,7 @@ class IntergasOrionClient:
         if status in (401, 403):
             raise IntergasAuthError(f"{method} {path}: HTTP {status} after re-auth")
         if status >= 400:
-            raise IntergasApiError(f"{method} {path}: HTTP {status}")
+            raise IntergasApiError(f"HTTP {status}: {self.last_error}")
         return data
 
     # --- resource helpers -------------------------------------------------
