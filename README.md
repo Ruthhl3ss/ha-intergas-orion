@@ -107,6 +107,11 @@ other integration that signs in to a cloud account, and are only sent to
 `app-api.orion.intergas.nl` over HTTPS. Nothing else is collected or sent
 anywhere.
 
+Debug logging (`custom_components.intergas_orion: debug`) records every API
+request and response, with account, heater, gateway and preset ids, serial
+numbers and names replaced by placeholders. The login request is never
+logged.
+
 ## Development
 
 ```bash

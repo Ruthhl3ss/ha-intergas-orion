@@ -3,6 +3,7 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from yarl import URL
 
@@ -269,3 +270,24 @@ def test_schedule_points() -> None:
     assert current["linked_preset_id"] == "p-away"
     assert start == datetime(2026, 10, 12, 7, 0)
     assert schedule_points({}, datetime(2026, 10, 9)) == (None, None, None)
+
+
+async def test_debug_log_has_no_identifiers(hass: HomeAssistant, api, caplog) -> None:
+    """Debug logs and errors must be shareable: no ids, serials, names or tokens."""
+    import logging
+
+    from homeassistant.exceptions import HomeAssistantError
+
+    caplog.set_level(logging.DEBUG, logger="custom_components.intergas_orion")
+    mock_cloud(api)
+    api.patch(ZONE_URL, status=422, payload={"detail": [{"loc": ["body"], "input": {"heater_id": HID}}]})
+    await _setup(hass)
+    entity_id = hass.states.async_all("climate")[0].entity_id
+    with pytest.raises(HomeAssistantError) as err:
+        await hass.services.async_call(
+            "climate", "set_temperature", {"entity_id": entity_id, "temperature": 21}, blocking=True
+        )
+    text = "\n".join(r.getMessage() for r in caplog.records) + "\n" + str(err.value)
+    assert "GET /v1/accounts/<id>/heaters/<id>/zones" in text
+    for secret in (AID, HID, "SN-TEST", "jwt-1", "user@example.com", "secret", "Zone A"):
+        assert secret not in text, secret

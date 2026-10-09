@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1
+
+- Debug logs and error messages no longer contain account, heater, gateway or
+  preset ids, serial numbers or names, so they can be shared in an issue as
+  they are. Nothing is kept from a failed login response.
+- `tools/orion_probe.py` also redacts every `*_id` field.
+
 ## 0.2.0
 
 - Switch between manual (`heat`) and week schedule (`auto`) from the climate

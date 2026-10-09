@@ -21,9 +21,10 @@ import urllib.request
 
 BASE = "https://app-api.orion.intergas.nl"  # fixed https base, so urlopen schemes are safe
 
+# Plus every key named "id" or ending in "_id" (heater, gateway, preset ids).
 REDACT_KEYS = {
-    "jwt", "refresh_token", "access_token", "account_id", "heater_id",
-    "gateway_id", "id", "serial_number", "email", "name", "mac", "mac_address",
+    "jwt", "refresh_token", "access_token", "serial_number", "email", "name",
+    "mac", "mac_address",
 }
 
 
@@ -45,7 +46,11 @@ def request(method, path, token=None, body=None):
 def redact(value):
     if isinstance(value, dict):
         return {
-            k: ("<redacted>" if k in REDACT_KEYS and v is not None else redact(v))
+            k: (
+                "<redacted>"
+                if v is not None and (k in REDACT_KEYS or k == "id" or k.endswith("_id"))
+                else redact(v)
+            )
             for k, v in value.items()
         }
     if isinstance(value, list):

@@ -8,7 +8,9 @@ refresh-token contract.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+import re
 from typing import Any
 
 import aiohttp
@@ -21,6 +23,38 @@ REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=20)
 
 # Never log these exchanges: they carry the email, password and JWT.
 _UNLOGGED_PATHS = ("/v1/accounts/authenticate", "/v1/accounts/platform_check")
+
+# Identifiers that tie a log to one installation. They are removed from
+# everything this client logs or puts in an exception, so debug logs can be
+# shared in an issue as they are.
+_ID_IN_PATH = re.compile(r"/(accounts|heaters|gateways|presets)/(?!pair-)[^/]+")
+_PRIVATE_KEYS = {"email", "name", "serial_number", "mac", "mac_address", "jwt", "refresh_token"}
+
+
+def redact_path(path: str) -> str:
+    """Replace the account, heater, gateway and preset ids in an API path."""
+    return _ID_IN_PATH.sub(r"/\1/<id>", path)
+
+
+def redact(value: Any) -> Any:
+    """Replace ids, serial numbers, names and tokens in decoded API JSON."""
+    if isinstance(value, dict):
+        return {
+            k: "<redacted>"
+            if v is not None and (k in _PRIVATE_KEYS or k == "id" or k.endswith("_id"))
+            else redact(v)
+            for k, v in value.items()
+        }
+    if isinstance(value, list):
+        return [redact(v) for v in value]
+    return value
+
+
+def _redact_body(body: bytes) -> Any:
+    try:
+        return redact(json.loads(body))
+    except ValueError:
+        return f"<non-JSON body, {len(body)} bytes>"
 
 
 class IntergasAuthError(Exception):
@@ -62,19 +96,30 @@ class IntergasOrionClient:
                 method, url, json=json_body, headers=headers, timeout=REQUEST_TIMEOUT
             ) as resp:
                 body = await resp.read()
-                if path not in _UNLOGGED_PATHS:
+                logged = path not in _UNLOGGED_PATHS
+                if logged and _LOGGER.isEnabledFor(logging.DEBUG):
                     _LOGGER.debug(
                         "%s %s %s -> HTTP %s: %s",
-                        method, path, json_body, resp.status, body[:2000],
+                        method,
+                        redact_path(path),
+                        json_body,
+                        resp.status,
+                        _redact_body(body) if body else "",
                     )
                 if resp.status >= 400:
-                    self.last_error = body[:500].decode(errors="replace")
+                    # A validation error can echo the request; the login
+                    # request carries the password, so keep nothing from it.
+                    self.last_error = (
+                        str(_redact_body(body))[:500] if logged else None
+                    )
                     return resp.status, None
                 if not body:
                     return resp.status, None
                 return resp.status, await resp.json(content_type=None)
         except (TimeoutError, aiohttp.ClientError, ValueError) as err:
-            raise IntergasApiError(f"{method} {path} failed: {err!r}") from err
+            raise IntergasApiError(
+                f"{method} {redact_path(path)} failed: {type(err).__name__}"
+            ) from err
 
     async def authenticate(self) -> None:
         """Log in and cache the JWT and account_id."""
@@ -126,7 +171,9 @@ class IntergasOrionClient:
                 headers={"Authorization": f"Bearer {self._jwt}"},
             )
         if status in (401, 403):
-            raise IntergasAuthError(f"{method} {path}: HTTP {status} after re-auth")
+            raise IntergasAuthError(
+                f"{method} {redact_path(path)}: HTTP {status} after re-auth"
+            )
         if status >= 400:
             raise IntergasApiError(f"HTTP {status}: {self.last_error}")
         return data
