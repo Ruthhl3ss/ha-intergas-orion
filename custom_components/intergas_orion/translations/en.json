@@ -42,6 +42,54 @@
       },
       "lockout_code": {
         "name": "Lockout code"
+      },
+      "gas_total": {
+        "name": "Gas consumption"
+      },
+      "ch_gas_consumption": {
+        "name": "Heating gas consumption"
+      },
+      "dhw_gas_consumption": {
+        "name": "Hot water gas consumption"
+      },
+      "ch_gas_operational_hours": {
+        "name": "Heating burner hours"
+      },
+      "dhw_gas_operational_hours": {
+        "name": "Hot water burner hours"
+      },
+      "device_poweron_hours": {
+        "name": "Power-on hours"
+      },
+      "outdoor_temperature": {
+        "name": "Outdoor temperature"
+      },
+      "last_seen": {
+        "name": "Last seen"
+      },
+      "mode": {
+        "name": "Operating mode",
+        "state": {
+          "off": "Off",
+          "running_manual_temperature": "Manual",
+          "running_week_scheme": "Week schedule",
+          "running_holiday_scheme": "Holiday",
+          "error": "Error",
+          "unknown": "Unknown"
+        }
+      }
+    },
+    "binary_sensor": {
+      "burner": {
+        "name": "Burner"
+      },
+      "online": {
+        "name": "Online"
+      }
+    },
+    "switch": {
+      "adaptive_schedule": {
+        "name": "Adaptive schedule"
       }
     }
   },

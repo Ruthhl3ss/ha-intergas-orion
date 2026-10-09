@@ -5,7 +5,8 @@ DOMAIN = "intergas_orion"
 API_BASE = "https://app-api.orion.intergas.nl"
 
 # Operating modes reported in heater["state"]["mode"].
-MODE_STANDBY = "STANDBY"
+# From the app's HeaterOperationalMode enum; OFF is standby.
+MODE_OFF = "OFF"
 MODE_MANUAL = "RUNNING_MANUAL_TEMPERATURE"
 MODE_WEEK = "RUNNING_WEEK_SCHEME"
 MODE_HOLIDAY = "RUNNING_HOLIDAY_SCHEME"

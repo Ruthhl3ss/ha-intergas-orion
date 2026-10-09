@@ -161,3 +161,48 @@ class IntergasOrionClient:
             f"/v1/accounts/{{aid}}/heaters/{heater_id}/zones/{zone_number}",
             json_body={"temperature_heater_setpoint": round(float(temperature), 1)},
         )
+
+    async def get_statistics(self, heater_id: str) -> dict:
+        return await self._request(
+            "GET", f"/v1/accounts/{{aid}}/heaters/{heater_id}/statistics"
+        ) or {}
+
+    async def get_weather(self, heater_id: str) -> dict:
+        return await self._request(
+            "GET", f"/v1/accounts/{{aid}}/heaters/{heater_id}/weather"
+        ) or {}
+
+    async def get_presets(self, heater_id: str) -> list[dict]:
+        return await self._request(
+            "GET", f"/v1/accounts/{{aid}}/heaters/{heater_id}/presets"
+        ) or []
+
+    async def get_week_scheme(self, heater_id: str, zone_number: int) -> dict:
+        return await self._request(
+            "GET",
+            f"/v1/accounts/{{aid}}/heaters/{heater_id}/zones/{zone_number}/scheme/week",
+        ) or {}
+
+    async def patch_week_scheme(
+        self, heater_id: str, zone_number: int, **fields: Any
+    ) -> None:
+        """Update WeekSchemeSettings; every field is optional.
+
+        schedule_enabled switches between the week scheme and the manual
+        setpoint (the API has no separate "mode" request).
+        """
+        await self._request(
+            "PATCH",
+            f"/v1/accounts/{{aid}}/heaters/{heater_id}/zones/{zone_number}/scheme/week",
+            json_body=fields,
+        )
+
+    async def set_preset_temperature(
+        self, heater_id: str, preset_id: str, temperature: float
+    ) -> None:
+        """Change a preset's temperature (PresetEdit; every field is optional)."""
+        await self._request(
+            "PATCH",
+            f"/v1/accounts/{{aid}}/heaters/{heater_id}/presets/{preset_id}",
+            json_body={"temperature": round(float(temperature), 1)},
+        )

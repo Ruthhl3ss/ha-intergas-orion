@@ -8,7 +8,7 @@ from yarl import URL
 
 from custom_components.intergas_orion.const import DOMAIN
 
-from .conftest import AID, API, HID, mock_cloud
+from .conftest import AID, API, HEATER, HID, mock_cloud
 
 CREDS = {CONF_EMAIL: "user@example.com", CONF_PASSWORD: "secret"}
 
@@ -61,7 +61,7 @@ async def test_entities(hass: HomeAssistant, api) -> None:
     assert state.attributes["current_temperature"] == 19.8
     assert state.attributes["temperature"] == 20.0
     assert state.attributes["hvac_action"] == "heating"
-    assert state.attributes["hvac_modes"] == ["heat"]
+    assert state.attributes["hvac_modes"] == ["heat", "auto"]
     # No request may ever go to an un-substituted account path.
     assert not any("None" in str(url) or "{aid}" in str(url) for _, url in api.requests)
 
@@ -162,3 +162,110 @@ async def test_options_scan_interval(hass: HomeAssistant, api) -> None:
     await hass.async_block_till_done()
     coordinator = hass.data[DOMAIN][entry.entry_id]
     assert coordinator.update_interval == timedelta(seconds=20)
+
+
+ZONE_URL = f"{API}/v1/accounts/{AID}/heaters/{HID}/zones/1"
+SCHEME_URL = f"{ZONE_URL}/scheme/week"
+
+
+def _entity(hass: HomeAssistant, domain: str, suffix: str) -> str:
+    return next(s.entity_id for s in hass.states.async_all(domain) if s.entity_id.endswith(suffix))
+
+
+async def test_sensors_and_binary_sensors(hass: HomeAssistant, api) -> None:
+    mock_cloud(api, heater={**HEATER, "last_seen": "2000-01-01T00:00:00Z"})
+    await _setup(hass)
+    assert hass.states.get(_entity(hass, "sensor", "_gas_consumption")).state == "82.75"
+    assert hass.states.get(_entity(hass, "sensor", "heating_gas_consumption")).state == "2.5"
+    assert hass.states.get(_entity(hass, "sensor", "water_pressure")).state == "1.57"
+    assert hass.states.get(_entity(hass, "sensor", "outdoor_temperature")).state == "16.9"
+    assert hass.states.get(_entity(hass, "sensor", "operating_mode")).state == "running_manual_temperature"
+    assert hass.states.get(_entity(hass, "binary_sensor", "burner")).state == "on"
+    # last_seen long ago: the gateway counts as offline.
+    assert hass.states.get(_entity(hass, "binary_sensor", "online")).state == "off"
+
+
+async def test_optional_endpoints_missing(hass: HomeAssistant, api) -> None:
+    """Statistics, presets etc. failing must not break the integration."""
+    mock_cloud(api, extras=False)
+    await _setup(hass)
+    state = hass.states.async_all("climate")[0]
+    assert state.attributes["temperature"] == 20.0
+    assert state.attributes["hvac_modes"] == ["heat"]
+    assert not hass.states.async_all("number")
+    assert not hass.states.async_all("switch")
+
+
+async def test_set_hvac_mode_auto(hass: HomeAssistant, api) -> None:
+    mock_cloud(api)
+    api.patch(SCHEME_URL, status=202, body=b"")
+    await _setup(hass)
+    entity_id = hass.states.async_all("climate")[0].entity_id
+    await hass.services.async_call(
+        "climate", "set_hvac_mode", {"entity_id": entity_id, "hvac_mode": "auto"}, blocking=True
+    )
+    calls = api.requests[("PATCH", URL(SCHEME_URL))]
+    assert calls[0].kwargs["json"] == {"schedule_enabled": True}
+    assert hass.states.get(entity_id).state == "auto"
+
+
+async def test_presets(hass: HomeAssistant, api) -> None:
+    mock_cloud(api)
+    api.patch(ZONE_URL, status=202, body=b"")
+    await _setup(hass)
+    state = hass.states.async_all("climate")[0]
+    assert state.attributes["preset_modes"] == ["Away", "Comfort", "Home"]
+    # Manual mode at 20.0 matches the "Home" preset.
+    assert state.attributes["preset_mode"] == "Home"
+    assert "next_schedule_change" in state.attributes
+    await hass.services.async_call(
+        "climate", "set_preset_mode", {"entity_id": state.entity_id, "preset_mode": "Comfort"},
+        blocking=True,
+    )
+    calls = api.requests[("PATCH", URL(ZONE_URL))]
+    assert calls[0].kwargs["json"] == {"temperature_heater_setpoint": 21.5}
+
+
+async def test_preset_temperature_number(hass: HomeAssistant, api) -> None:
+    mock_cloud(api)
+    url = f"{API}/v1/accounts/{AID}/heaters/{HID}/presets/p-comfort"
+    api.patch(url, status=202, body=b"")
+    await _setup(hass)
+    entity_id = _entity(hass, "number", "comfort_preset_temperature")
+    assert hass.states.get(entity_id).state == "21.5"
+    await hass.services.async_call(
+        "number", "set_value", {"entity_id": entity_id, "value": 22}, blocking=True
+    )
+    assert api.requests[("PATCH", URL(url))][0].kwargs["json"] == {"temperature": 22.0}
+    assert hass.states.get(entity_id).state == "22.0"
+
+
+async def test_adaptive_schedule_switch(hass: HomeAssistant, api) -> None:
+    mock_cloud(api)
+    api.patch(SCHEME_URL, status=202, body=b"")
+    await _setup(hass)
+    entity_id = _entity(hass, "switch", "adaptive_schedule")
+    assert hass.states.get(entity_id).state == "on"
+    await hass.services.async_call("switch", "turn_off", {"entity_id": entity_id}, blocking=True)
+    calls = api.requests[("PATCH", URL(SCHEME_URL))]
+    assert calls[0].kwargs["json"] == {"adaptive_schedule_enabled": False}
+    assert hass.states.get(entity_id).state == "off"
+
+
+def test_schedule_points() -> None:
+    from datetime import datetime
+
+    from custom_components.intergas_orion.entity import schedule_points
+
+    from .conftest import SCHEME
+
+    # Friday 2026-10-09 18:00: current is 07:00 "home", next is 22:30 "away".
+    current, start, nxt = schedule_points(SCHEME, datetime(2026, 10, 9, 18, 0))
+    assert current["linked_preset_id"] == "p-home"
+    assert start == datetime(2026, 10, 9, 22, 30)
+    assert nxt["linked_preset_id"] == "p-away"
+    # Monday 03:00: still the Sunday 22:30 entry from the previous week.
+    current, start, _ = schedule_points(SCHEME, datetime(2026, 10, 12, 3, 0))
+    assert current["linked_preset_id"] == "p-away"
+    assert start == datetime(2026, 10, 12, 7, 0)
+    assert schedule_points({}, datetime(2026, 10, 9)) == (None, None, None)

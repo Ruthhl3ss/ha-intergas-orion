@@ -71,7 +71,7 @@ Fields used by the integration:
 | Field | Meaning |
 |---|---|
 | `heater_id` | heater id |
-| `state.mode` | `STANDBY`, `RUNNING_MANUAL_TEMPERATURE`, `RUNNING_WEEK_SCHEME`, `RUNNING_HOLIDAY_SCHEME` |
+| `state.mode` | `RUNNING_MANUAL_TEMPERATURE`, `RUNNING_WEEK_SCHEME`, `RUNNING_HOLIDAY_SCHEME`, `OFF`, `ERROR`, `UNKNOWN` |
 | `state.is_heating` | burner active |
 | `state.current_lockout_code` | lockout / fault code |
 | `hardware.type`, `hardware.serial_number`, `hardware.firmware_version` | device info |
@@ -121,8 +121,22 @@ PATCH  /v1/accounts/{aid}/heaters/{hid}                       {"name"}  (rename 
 - `timetable` maps `monday` ... `sunday` to lists of
   `{"time": "HH:MM", "linked_preset_id": "<preset id>"}`.
 
-These are taken from the app; only setting the temperature has been tested
-against a real installation so far.
+These are taken from the app. Every field in these request bodies is
+optional, so a body can carry only the field being changed (the app itself
+sends `{"schedule_enabled": false}` when it turns the schedule off).
+
+### Read-only extras
+
+```
+GET /v1/accounts/{aid}/heaters/{hid}/statistics
+  {"ch_gas_consumption", "dhw_gas_consumption", "ch_gas_operational_hours",
+   "dhw_gas_operational_hours", "device_poweron_hours", "ch_water_pressure", ...}
+GET /v1/accounts/{aid}/heaters/{hid}/weather
+  {"conditions": "BROKEN_CLOUDS", "nighttime": false, "temperature": 16.9}
+```
+
+The gas values are running totals (m³ as far as can be told; the API does not
+say). `dhw-buffer-tank` answers 404 on boilers without a buffer tank.
 
 ## Help wanted
 

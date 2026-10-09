@@ -21,11 +21,16 @@ Comfort Touch thermostat, single zone.
 | Feature | State |
 |---|---|
 | Room temperature, target temperature | ✅ |
-| Set target temperature | ⚠️ implemented, awaiting live confirmation |
+| Set target temperature | ✅ tested |
 | HVAC mode / action (read) | ✅ |
-| Diagnostic sensors (signal, lockout code, pressure, CH temperature) | ✅ (when reported by the boiler) |
-| Change HVAC mode (manual ↔ week schedule ↔ off) | ❌ not yet |
-| Week schedule, presets, holiday mode, statistics | ❌ not yet |
+| Switch between manual (`heat`) and week schedule (`auto`) | ✅ |
+| Presets (select from the climate card, edit their temperatures) | ✅ |
+| Next schedule change (climate attributes) | ✅ |
+| Adaptive schedule switch | ✅ |
+| Gas consumption (heating / hot water / total), burner hours | ✅ |
+| Water pressure, outdoor temperature, burner, online, operating mode | ✅ |
+| Editing the week schedule's time slots | ❌ not yet (use the app) |
+| Holiday mode | ❌ not yet (use the app) |
 
 ## Requirements
 
@@ -56,11 +61,29 @@ and password.
 ## Entities
 
 - **Climate**, one per zone: current room temperature, target temperature,
-  HVAC mode (`heat` = manual, `auto` = week or holiday schedule, `off` =
-  standby) and action (heating / idle / off).
-- **Sensors** (created only if the boiler reports the value): water pressure,
-  central heating temperature, lockout code, and heater/gateway signal
-  strength (disabled by default).
+  HVAC mode and action (heating / idle / off).
+  - `heat` runs on the manual setpoint, `auto` follows the week schedule
+    (holiday schedules also show as `auto`, a boiler that is off as `off`). Switching
+    between them turns the app's week schedule off or on.
+  - Presets are the ones defined in the app. Selecting one sets the zone to
+    the preset's temperature. In `auto` mode the active preset is the one the
+    schedule is currently on.
+  - Attributes: `schedule_enabled`, `adaptive_schedule_enabled`,
+    `next_schedule_change`, `next_schedule_preset`, `next_schedule_temperature`.
+- **Sensors** (created only if the cloud reports the value):
+  - Gas consumption: heating, hot water and their total, in m³ and usable in
+    the Energy dashboard. The API does not state the unit; m³ matches the
+    values the app shows.
+  - Heating and hot water burner hours, power-on hours.
+  - Water pressure, central heating temperature, outdoor temperature (the
+    cloud's weather for your location).
+  - Operating mode (off / manual / week schedule / holiday / error), lockout code,
+    last seen, heater/gateway signal strength (disabled by default).
+- **Binary sensors**: burner (on while heating) and online (the gateway
+  reported to the cloud in the last 10 minutes).
+- **Switch**: adaptive schedule (the thermostat starts heating early so the
+  room reaches the scheduled temperature on time).
+- **Numbers**: the temperature of each preset.
 
 ## How it works
 
@@ -68,6 +91,8 @@ and password.
   bearer token. When the token expires (about an hour) it signs in again.
 - Polls the heaters and zones every 30 seconds by default; change it under
   Settings → Devices & services → Intergas → Configure (15–300 seconds).
+  Statistics, weather, presets and the week schedule are read every 5 minutes,
+  and right after a change made from Home Assistant.
 - Setting a temperature sends `PATCH .../zones/{n}` with
   `{"temperature_heater_setpoint": <value>}`, as the app does. The cloud
   accepts it immediately (HTTP 202) and the thermostat reports the new value

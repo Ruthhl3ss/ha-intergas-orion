@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.0
+
+- Switch between manual (`heat`) and week schedule (`auto`) from the climate
+  entity.
+- Presets: select one from the climate card (sets the zone to the preset's
+  temperature) and edit each preset's temperature with a number entity.
+- Climate attributes for the week schedule: whether it is on, and the next
+  change with its preset and temperature.
+- Adaptive schedule switch.
+- New sensors: gas consumption (heating, hot water, total; Energy dashboard
+  ready), burner hours, power-on hours, outdoor temperature, operating mode,
+  last seen. Water pressure now comes from the statistics endpoint.
+- New binary sensors: burner and online.
+- Statistics, weather, presets and week schedules are read every 5 minutes;
+  a failure there no longer affects the climate entity.
+
 ## 0.1.2
 
 - Fix: setting the temperature had no effect. The request now uses the
