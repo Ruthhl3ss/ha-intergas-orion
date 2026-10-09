@@ -151,9 +151,13 @@ class IntergasOrionClient:
     async def set_zone_temperature(
         self, heater_id: str, zone_number: int, temperature: float
     ) -> None:
-        """Set a zone's manual target temperature (ZoneUpdate.target_temperature)."""
+        """Set a zone's target temperature (ZoneUpdate.temperature_heater_setpoint).
+
+        The API also answers 202 to unknown fields and ignores them, so the
+        field name has to match exactly.
+        """
         await self._request(
             "PATCH",
             f"/v1/accounts/{{aid}}/heaters/{heater_id}/zones/{zone_number}",
-            json_body={"target_temperature": round(float(temperature), 1)},
+            json_body={"temperature_heater_setpoint": round(float(temperature), 1)},
         )

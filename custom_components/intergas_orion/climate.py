@@ -32,7 +32,7 @@ from .coordinator import IntergasCoordinator
 # Seconds to wait before re-reading after a write, and to keep showing the
 # requested setpoint if the cloud has not reported it yet.
 CONFIRM_DELAY = 15
-PENDING_TIMEOUT = 120
+PENDING_TIMEOUT = 180
 
 
 async def async_setup_entry(

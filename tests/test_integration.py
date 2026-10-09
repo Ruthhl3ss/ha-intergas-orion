@@ -76,7 +76,7 @@ async def test_set_temperature(hass: HomeAssistant, api) -> None:
         "climate", "set_temperature", {"entity_id": entity_id, "temperature": 21.5}, blocking=True
     )
     calls = api.requests[("PATCH", URL(zone_url))]
-    assert calls[0].kwargs["json"] == {"target_temperature": 21.5}
+    assert calls[0].kwargs["json"] == {"temperature_heater_setpoint": 21.5}
     assert calls[0].kwargs["headers"]["Authorization"] == "Bearer jwt-1"
     # The cloud applies it asynchronously (202): keep showing the requested value.
     assert hass.states.get(entity_id).attributes["temperature"] == 21.5

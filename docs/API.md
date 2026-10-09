@@ -93,12 +93,36 @@ Fields used by the integration:
 
 ```
 PATCH /v1/accounts/{aid}/heaters/{hid}/zones/{n}
-{"target_temperature": 21.0}
+{"temperature_heater_setpoint": 21.0}
 ```
 
-This is the `ZoneUpdate` model from the API's schema. Other fields seen in the
-app (`preset_id`, `schedule_enabled`, ...) have not been explored yet, and
-neither has the request body for changing the mode.
+`ZoneUpdate` has two optional fields: `name` and `temperature_heater_setpoint`.
+The API answers `202 Accepted` with an empty body and applies the change
+through the gateway; the zone reports the new setpoint about 40-70 seconds
+later. Unknown fields (for example `target_temperature`) are also answered
+with 202 and silently ignored.
+
+### Other writes the app uses
+
+```
+PATCH  /v1/accounts/{aid}/heaters/{hid}/zones/{n}/scheme/week
+       {"schedule_enabled": bool, "adaptive_schedule_enabled": bool, "timetable": {...}}
+POST   /v1/accounts/{aid}/heaters/{hid}/presets               (create)
+PATCH  /v1/accounts/{aid}/heaters/{hid}/presets/{preset_id}   {"name", "temperature", "color"}
+DELETE /v1/accounts/{aid}/heaters/{hid}/presets/{preset_id}
+PATCH  /v1/accounts/{aid}/heaters/{hid}                       {"name"}  (rename only)
+```
+
+- There is no request that sets the mode directly. `state.mode` follows from
+  the schedule switch: `schedule_enabled: true` runs the week scheme, `false`
+  runs on the manual setpoint.
+- Holiday mode in the app is two calls: switch the schedule off, then set the
+  holiday temperature.
+- `timetable` maps `monday` ... `sunday` to lists of
+  `{"time": "HH:MM", "linked_preset_id": "<preset id>"}`.
+
+These are taken from the app; only setting the temperature has been tested
+against a real installation so far.
 
 ## Help wanted
 

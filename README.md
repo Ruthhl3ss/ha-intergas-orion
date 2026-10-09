@@ -69,9 +69,9 @@ and password.
 - Polls the heaters and zones every 30 seconds by default; change it under
   Settings → Devices & services → Intergas → Configure (15–300 seconds).
 - Setting a temperature sends `PATCH .../zones/{n}` with
-  `{"target_temperature": <value>}`. As in the app, changing the setpoint while
-  a week schedule is active switches to manual mode until the next schedule
-  switch.
+  `{"temperature_heater_setpoint": <value>}`, as the app does. The cloud
+  accepts it immediately (HTTP 202) and the thermostat reports the new value
+  about 40-70 seconds later; until then the entity shows the requested value.
 
 See [docs/API.md](docs/API.md) for what is known about the API.
 

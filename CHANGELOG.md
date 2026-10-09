@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.2
+
+- Fix: setting the temperature had no effect. The request now uses the
+  `temperature_heater_setpoint` field, as the Comfort Touch app does; the API
+  accepted and silently ignored the old `target_temperature` field.
+- The requested setpoint is shown for up to 3 minutes while the thermostat
+  picks it up (it usually takes 40-70 seconds).
+
 ## 0.1.1
 
 - Setting the temperature: the cloud accepts it with HTTP 202 and applies it
