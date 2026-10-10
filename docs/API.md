@@ -111,7 +111,16 @@ POST   /v1/accounts/{aid}/heaters/{hid}/presets               (create)
 PATCH  /v1/accounts/{aid}/heaters/{hid}/presets/{preset_id}   {"name", "temperature", "color"}
 DELETE /v1/accounts/{aid}/heaters/{hid}/presets/{preset_id}
 PATCH  /v1/accounts/{aid}/heaters/{hid}                       {"name"}  (rename only)
+GET    /v1/accounts/{aid}/heaters/{hid}/parameters            [APIParameter]
+PATCH  /v1/accounts/{aid}/heaters/{hid}/parameters            {"title", "desired_value"}
 ```
+
+`/parameters` lists the boiler parameters the app may change. On an Xtreme 36:
+`heater_operational_state` (0 off / 1 on) and `ch_temperature` (P050, maximum
+CH supply temperature, range 10-90 °C, factory 80). Each entry has `title`,
+`value`, `range {min_value, max_value}`, `options`, `display_code`,
+`description`, `nom_value` (factory value), `unit_or_type`, `status` and
+`error_description`. The update body is one APIParameterUpdate object.
 
 - There is no request that sets the mode directly. `state.mode` follows from
   the schedule switch: `schedule_enabled: true` runs the week scheme, `false`

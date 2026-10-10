@@ -70,6 +70,9 @@ and password.
     schedule is currently on.
   - Attributes: `schedule_enabled`, `adaptive_schedule_enabled`,
     `next_schedule_change`, `next_schedule_preset`, `next_schedule_temperature`.
+- **Maximum supply temperature** (number, configuration): the boiler's
+  maximum central-heating flow temperature (P050), from the boiler's own
+  parameter list. Same setting as the app's device settings.
 - **Sensors** (created only if the cloud reports the value):
   - Gas consumption: heating, hot water and their total, in m³ and usable in
     the Energy dashboard. The API does not state the unit; m³ matches the

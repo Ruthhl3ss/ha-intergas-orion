@@ -26,7 +26,7 @@ class IntergasCoordinator(DataUpdateCoordinator):
     data shape: {heater_id: {
         "heater": <dict>, "zones": [<dict>, ...],
         "statistics": <dict>, "weather": <dict>, "presets": [<dict>, ...],
-        "schemes": {zone_number: <dict>},
+        "schemes": {zone_number: <dict>}, "parameters": {title: <dict>},
     }}
     """
 
@@ -75,6 +75,7 @@ class IntergasCoordinator(DataUpdateCoordinator):
                     "weather": {},
                     "presets": [],
                     "schemes": {},
+                    "parameters": {},
                 }
                 old = previous.get(hid, {})
                 if fetch_slow:
@@ -82,6 +83,11 @@ class IntergasCoordinator(DataUpdateCoordinator):
                     bundle["statistics"] = await self._optional(c.get_statistics(hid), {})
                     bundle["weather"] = await self._optional(c.get_weather(hid), {})
                     bundle["presets"] = await self._optional(c.get_presets(hid), [])
+                    bundle["parameters"] = {
+                        p["title"]: p
+                        for p in await self._optional(c.get_parameters(hid), [])
+                        if isinstance(p, dict) and p.get("title")
+                    }
                     for zone in zones:
                         n = zone.get("zone_number")
                         if n is not None:
@@ -89,7 +95,7 @@ class IntergasCoordinator(DataUpdateCoordinator):
                                 c.get_week_scheme(hid, n), {}
                             )
                 else:
-                    for key in ("statistics", "weather", "presets", "schemes"):
+                    for key in ("statistics", "weather", "presets", "schemes", "parameters"):
                         if key in old:
                             bundle[key] = old[key]
                 result[hid] = bundle

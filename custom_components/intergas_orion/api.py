@@ -253,3 +253,17 @@ class IntergasOrionClient:
             f"/v1/accounts/{{aid}}/heaters/{heater_id}/presets/{preset_id}",
             json_body={"temperature": round(float(temperature), 1)},
         )
+
+    async def get_parameters(self, heater_id: str) -> list[dict]:
+        """Boiler parameters the app may change (APIParameter: title, value, range, display_code, status)."""
+        return await self._request(
+            "GET", f"/v1/accounts/{{aid}}/heaters/{heater_id}/parameters"
+        ) or []
+
+    async def set_parameter(self, heater_id: str, title: str, value: int) -> None:
+        """Change one boiler parameter (APIParameterUpdate: title + desired_value)."""
+        await self._request(
+            "PATCH",
+            f"/v1/accounts/{{aid}}/heaters/{heater_id}/parameters",
+            json_body={"title": title, "desired_value": int(value)},
+        )

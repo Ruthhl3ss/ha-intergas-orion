@@ -23,6 +23,14 @@ PRESETS = [
     {"name": "Comfort", "temperature": 21.5, "color": "COLOR_YELLOW", "type": "COMFORT", "preset_id": "p-comfort"},
     {"name": "Home", "temperature": 20.0, "color": "COLOR_WHITE", "type": "CUSTOM", "preset_id": "p-home"},
 ]
+PARAMETERS = [
+    {"title": "heater_operational_state", "value": 1, "range": {"min_value": 0, "max_value": 1},
+     "options": [{"value": 0, "description": "off"}, {"value": 1, "description": "on"}], "display_code": "",
+     "description": "Device operational state: ", "nom_value": 0, "unit_or_type": "enum", "status": "NORMAL", "error_description": ""},
+    {"title": "ch_temperature", "value": 80, "range": {"min_value": 10, "max_value": 90}, "options": [],
+     "display_code": "P050", "description": "Maximum CH temperature setpoint : ", "nom_value": 80,
+     "unit_or_type": "\u00b0C", "status": "NORMAL", "error_description": ""},
+]
 DAY = [{"time": "07:00", "linked_preset_id": "p-home"}, {"time": "22:30", "linked_preset_id": "p-away"}]
 SCHEME = {
     "schedule_enabled": False,
@@ -54,6 +62,7 @@ def mock_cloud(mock, *, jwt="jwt-1", repeat=True, heater=None, extras=True):
         mock.get(f"{base}/weather", payload=WEATHER, repeat=repeat)
         mock.get(f"{base}/presets", payload=PRESETS, repeat=repeat)
         mock.get(f"{base}/zones/1/scheme/week", payload=SCHEME, repeat=repeat)
+        mock.get(f"{base}/parameters", payload=PARAMETERS, repeat=repeat)
     else:
-        for path in ("statistics", "weather", "presets", "zones/1/scheme/week"):
+        for path in ("statistics", "weather", "presets", "zones/1/scheme/week", "parameters"):
             mock.get(f"{base}/{path}", status=404, repeat=repeat)

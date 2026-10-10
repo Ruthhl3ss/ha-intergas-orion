@@ -241,6 +241,23 @@ async def test_preset_temperature_number(hass: HomeAssistant, api) -> None:
     assert hass.states.get(entity_id).state == "22.0"
 
 
+async def test_max_supply_temperature_number(hass: HomeAssistant, api) -> None:
+    mock_cloud(api)
+    url = f"{API}/v1/accounts/{AID}/heaters/{HID}/parameters"
+    api.patch(url, status=202, body=b"")
+    await _setup(hass)
+    entity_id = _entity(hass, "number", "maximum_supply_temperature")
+    state = hass.states.get(entity_id)
+    assert state.state == "80"
+    assert state.attributes["min"] == 10 and state.attributes["max"] == 90
+    assert state.attributes["display_code"] == "P050"
+    await hass.services.async_call(
+        "number", "set_value", {"entity_id": entity_id, "value": 60}, blocking=True
+    )
+    assert api.requests[("PATCH", URL(url))][0].kwargs["json"] == {"title": "ch_temperature", "desired_value": 60}
+    assert hass.states.get(entity_id).state == "60"
+
+
 async def test_adaptive_schedule_switch(hass: HomeAssistant, api) -> None:
     mock_cloud(api)
     api.patch(SCHEME_URL, status=202, body=b"")
