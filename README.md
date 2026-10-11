@@ -15,7 +15,7 @@ app.
 
 ## Status
 
-Early release (0.1.x). Developed against an Intergas Xtreme boiler with a
+Early release (0.x). Developed against an Intergas Xtreme boiler with a
 Comfort Touch thermostat, single zone.
 
 | Feature | State |
@@ -24,11 +24,14 @@ Comfort Touch thermostat, single zone.
 | Set target temperature | ✅ tested |
 | HVAC mode / action (read) | ✅ |
 | Switch between manual (`heat`) and week schedule (`auto`) | ✅ |
+| Turn the boiler off / on (`off` mode) | ✅ |
+| Maximum supply temperature (P050) | ✅ |
 | Presets (select from the climate card, edit their temperatures) | ✅ |
 | Next schedule change (climate attributes) | ✅ |
 | Adaptive schedule switch | ✅ |
 | Gas consumption (heating / hot water / total), burner hours | ✅ |
 | Water pressure, outdoor temperature, burner, online, operating mode | ✅ |
+| Redacted diagnostics download | ✅ |
 | Editing the week schedule's time slots | ❌ not yet (use the app) |
 | Holiday mode | ❌ not yet (use the app) |
 
@@ -63,8 +66,11 @@ and password.
 - **Climate**, one per zone: current room temperature, target temperature,
   HVAC mode and action (heating / idle / off).
   - `heat` runs on the manual setpoint, `auto` follows the week schedule
-    (holiday schedules also show as `auto`, a boiler that is off as `off`). Switching
-    between them turns the app's week schedule off or on.
+    (holiday schedules also show as `auto`). Switching between them turns the
+    app's week schedule off or on.
+  - `off` turns the boiler off, the same as the app's device setting
+    "operational state". Choosing `heat` or `auto` (or `climate.turn_on`)
+    turns it back on. Only offered when the boiler reports that setting.
   - Presets are the ones defined in the app. Selecting one sets the zone to
     the preset's temperature. In `auto` mode the active preset is the one the
     schedule is currently on.
@@ -115,6 +121,12 @@ request and response, with account, heater, gateway and preset ids, serial
 numbers and names replaced by placeholders. The login request is never
 logged.
 
+## Removal
+
+Settings → Devices & services → Intergas → ⋮ → **Delete**, then remove
+`custom_components/intergas_orion` (or uninstall it in HACS) and restart Home
+Assistant.
+
 ## Development
 
 ```bash
@@ -126,8 +138,11 @@ The tests run the integration inside Home Assistant against a mocked cloud API.
 
 ## Contributing
 
-Issues and pull requests are welcome, especially API captures from multi-zone
-setups and other boiler models (please remove serial numbers, IDs and tokens).
+Issues and pull requests are welcome, especially from multi-zone setups and
+other boiler models. When reporting a problem, attach the diagnostics file
+(Settings → Devices & services → Intergas → ⋮ → **Download diagnostics**):
+ids, serial numbers, names and credentials are already removed from it.
+Debug logs are redacted the same way.
 
 ## Acknowledgements
 

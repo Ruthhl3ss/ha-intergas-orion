@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.0
+
+- The climate entity has an `off` mode that turns the boiler off, the same as
+  the app's device setting "operational state" (boiler parameter
+  `heater_operational_state`). `heat`, `auto` and `climate.turn_on` turn it
+  back on. Only offered when the boiler reports that parameter.
+- Diagnostics: Settings → Devices & services → Intergas → Download
+  diagnostics gives a snapshot of everything the integration read, with ids,
+  serial numbers, names and credentials removed.
+- Fix: a crash in the redaction of data keyed by zone number.
+- Fix: every temperature or mode change registered another cleanup callback;
+  only the latest pending re-check is kept now.
+- Internal: per-entry data lives in `entry.runtime_data`; the maximum supply
+  temperature entity name is translatable.
+
 ## 0.3.0
 
 - New number entity **Maximum supply temperature**: the boiler's maximum

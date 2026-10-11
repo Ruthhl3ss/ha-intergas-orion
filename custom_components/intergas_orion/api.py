@@ -41,7 +41,7 @@ def redact(value: Any) -> Any:
     if isinstance(value, dict):
         return {
             k: "<redacted>"
-            if v is not None and (k in _PRIVATE_KEYS or k == "id" or k.endswith("_id"))
+            if v is not None and isinstance(k, str) and (k in _PRIVATE_KEYS or k == "id" or k.endswith("_id"))
             else redact(v)
             for k, v in value.items()
         }

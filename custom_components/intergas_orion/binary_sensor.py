@@ -13,7 +13,6 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN
 from .coordinator import IntergasCoordinator
 from .entity import IntergasEntity
 
@@ -24,7 +23,7 @@ OFFLINE_AFTER = timedelta(minutes=10)
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    coordinator: IntergasCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: IntergasCoordinator = entry.runtime_data
     entities: list[BinarySensorEntity] = []
     for hid in coordinator.data:
         entities.append(IntergasBurner(coordinator, hid))

@@ -24,7 +24,6 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN
 from .coordinator import IntergasCoordinator
 from .entity import IntergasEntity
 
@@ -208,7 +207,7 @@ ALWAYS_CREATE = {"lockout_code"}
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    coordinator: IntergasCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: IntergasCoordinator = entry.runtime_data
     entities = []
     for hid, bundle in coordinator.data.items():
         for desc in SENSORS:

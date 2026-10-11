@@ -51,7 +51,7 @@ def api():
         yield mock
 
 
-def mock_cloud(mock, *, jwt="jwt-1", repeat=True, heater=None, extras=True):
+def mock_cloud(mock, *, jwt="jwt-1", repeat=True, heater=None, extras=True, parameters=None):
     mock.post(f"{API}/v1/accounts/platform_check", payload={"platform": "ARCH_2_0"}, repeat=repeat)
     mock.post(f"{API}/v1/accounts/authenticate", payload={"jwt": jwt, "account_id": AID}, repeat=repeat)
     base = f"{API}/v1/accounts/{AID}/heaters/{HID}"
@@ -62,7 +62,7 @@ def mock_cloud(mock, *, jwt="jwt-1", repeat=True, heater=None, extras=True):
         mock.get(f"{base}/weather", payload=WEATHER, repeat=repeat)
         mock.get(f"{base}/presets", payload=PRESETS, repeat=repeat)
         mock.get(f"{base}/zones/1/scheme/week", payload=SCHEME, repeat=repeat)
-        mock.get(f"{base}/parameters", payload=PARAMETERS, repeat=repeat)
+        mock.get(f"{base}/parameters", payload=PARAMETERS if parameters is None else parameters, repeat=repeat)
     else:
         for path in ("statistics", "weather", "presets", "zones/1/scheme/week", "parameters"):
             mock.get(f"{base}/{path}", status=404, repeat=repeat)

@@ -12,7 +12,6 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .api import IntergasApiError
-from .const import DOMAIN
 from .coordinator import IntergasCoordinator
 from .entity import IntergasEntity
 
@@ -22,7 +21,7 @@ PENDING_TIMEOUT = 180
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    coordinator: IntergasCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: IntergasCoordinator = entry.runtime_data
     async_add_entities(
         IntergasAdaptiveSchedule(coordinator, hid, n)
         for hid, bundle in coordinator.data.items()

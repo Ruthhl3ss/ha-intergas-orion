@@ -11,6 +11,10 @@ MODE_MANUAL = "RUNNING_MANUAL_TEMPERATURE"
 MODE_WEEK = "RUNNING_WEEK_SCHEME"
 MODE_HOLIDAY = "RUNNING_HOLIDAY_SCHEME"
 
+# Boiler parameters (GET/PATCH .../parameters) the app lets users change.
+PARAM_OPERATIONAL_STATE = "heater_operational_state"  # 0 = off, 1 = on
+PARAM_MAX_SUPPLY_TEMPERATURE = "ch_temperature"  # P050, maximum CH supply temperature
+
 # Setpoint bounds enforced by the Comfort Touch thermostat.
 MIN_TEMP = 5.0
 MAX_TEMP = 30.0

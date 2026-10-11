@@ -1,0 +1,43 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please do not paste your email address, password,
+        serial numbers or ids: the diagnostics file and debug logs already have
+        them removed.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Integration version and Home Assistant version
+      placeholder: "0.4.0 / 2026.10.0"
+    validations:
+      required: true
+  - type: input
+    id: boiler
+    attributes:
+      label: Boiler model, thermostat, number of zones
+      placeholder: "Xtreme 36, Comfort Touch, 1 zone"
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: |
+        Settings → Devices & services → Intergas → ⋮ → Download diagnostics,
+        then drag the file here.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Debug log (optional)
+      description: |
+        Add `custom_components.intergas_orion: debug` under `logger: logs:` in
+        configuration.yaml, reproduce the problem and paste the relevant lines.
+      render: text

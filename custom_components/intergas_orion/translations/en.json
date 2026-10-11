@@ -91,6 +91,11 @@
       "adaptive_schedule": {
         "name": "Adaptive schedule"
       }
+    },
+    "number": {
+      "max_supply_temperature": {
+        "name": "Maximum supply temperature"
+      }
     }
   },
   "options": {

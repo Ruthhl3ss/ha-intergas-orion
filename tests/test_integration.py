@@ -62,7 +62,7 @@ async def test_entities(hass: HomeAssistant, api) -> None:
     assert state.attributes["current_temperature"] == 19.8
     assert state.attributes["temperature"] == 20.0
     assert state.attributes["hvac_action"] == "heating"
-    assert state.attributes["hvac_modes"] == ["heat", "auto"]
+    assert state.attributes["hvac_modes"] == ["heat", "auto", "off"]
     # No request may ever go to an un-substituted account path.
     assert not any("None" in str(url) or "{aid}" in str(url) for _, url in api.requests)
 
@@ -152,7 +152,7 @@ async def test_options_scan_interval(hass: HomeAssistant, api) -> None:
 
     mock_cloud(api)
     entry = await _setup(hass)
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     assert coordinator.update_interval == timedelta(seconds=30)
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
@@ -161,7 +161,7 @@ async def test_options_scan_interval(hass: HomeAssistant, api) -> None:
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done()
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     assert coordinator.update_interval == timedelta(seconds=20)
 
 
@@ -307,4 +307,65 @@ async def test_debug_log_has_no_identifiers(hass: HomeAssistant, api, caplog) ->
     text = "\n".join(r.getMessage() for r in caplog.records) + "\n" + str(err.value)
     assert "GET /v1/accounts/<id>/heaters/<id>/zones" in text
     for secret in (AID, HID, "SN-TEST", "jwt-1", "user@example.com", "secret", "Zone A"):
+        assert secret not in text, secret
+
+
+PARAMS_URL = f"{API}/v1/accounts/{AID}/heaters/{HID}/parameters"
+
+
+async def test_turn_boiler_off(hass: HomeAssistant, api) -> None:
+    mock_cloud(api)
+    api.patch(PARAMS_URL, status=202, body=b"")
+    await _setup(hass)
+    entity_id = hass.states.async_all("climate")[0].entity_id
+    await hass.services.async_call("climate", "turn_off", {"entity_id": entity_id}, blocking=True)
+    calls = api.requests[("PATCH", URL(PARAMS_URL))]
+    assert calls[0].kwargs["json"] == {"title": "heater_operational_state", "desired_value": 0}
+    assert hass.states.get(entity_id).state == "off"
+
+
+async def test_turn_boiler_back_on(hass: HomeAssistant, api) -> None:
+    """From off, heat switches the boiler on and the schedule off."""
+    from .conftest import PARAMETERS
+
+    off = [{**p, "value": 0} if p["title"] == "heater_operational_state" else p for p in PARAMETERS]
+    mock_cloud(api, parameters=off)
+    api.patch(PARAMS_URL, status=202, body=b"")
+    api.patch(SCHEME_URL, status=202, body=b"")
+    await _setup(hass)
+    entity_id = hass.states.async_all("climate")[0].entity_id
+    assert hass.states.get(entity_id).state == "off"
+    assert hass.states.get(entity_id).attributes["hvac_action"] == "off"
+    await hass.services.async_call(
+        "climate", "set_hvac_mode", {"entity_id": entity_id, "hvac_mode": "heat"}, blocking=True
+    )
+    assert api.requests[("PATCH", URL(PARAMS_URL))][0].kwargs["json"] == {
+        "title": "heater_operational_state", "desired_value": 1,
+    }
+    assert api.requests[("PATCH", URL(SCHEME_URL))][0].kwargs["json"] == {"schedule_enabled": False}
+    assert hass.states.get(entity_id).state == "heat"
+
+
+async def test_no_off_mode_without_parameter(hass: HomeAssistant, api) -> None:
+    mock_cloud(api, parameters=[])
+    await _setup(hass)
+    state = hass.states.async_all("climate")[0]
+    assert state.attributes["hvac_modes"] == ["heat", "auto"]
+
+
+async def test_diagnostics_are_redacted(hass: HomeAssistant, api) -> None:
+    import json
+
+    from custom_components.intergas_orion.diagnostics import (
+        async_get_config_entry_diagnostics,
+    )
+
+    mock_cloud(api)
+    entry = await _setup(hass)
+    diag = await async_get_config_entry_diagnostics(hass, entry)
+    heater = diag["heaters"]["heater_1"]
+    assert heater["zones"][0]["temperature_heater_setpoint"] == 20.0
+    assert heater["statistics"]["dhw_gas_consumption"] == 80.25
+    text = json.dumps(diag)
+    for secret in (AID, HID, "SN-TEST", "user@example.com", "secret", "Zone A", "p-home"):
         assert secret not in text, secret

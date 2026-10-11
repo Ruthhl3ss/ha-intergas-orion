@@ -13,18 +13,17 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .api import IntergasApiError
 from .climate import preset_label
-from .const import DOMAIN, MAX_TEMP, MIN_TEMP
+from .const import MAX_TEMP, MIN_TEMP, PARAM_MAX_SUPPLY_TEMPERATURE
 from .coordinator import IntergasCoordinator
 from .entity import IntergasEntity
 
 PENDING_TIMEOUT = 180
-CH_TEMPERATURE = "ch_temperature"
 
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    coordinator: IntergasCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: IntergasCoordinator = entry.runtime_data
     entities: list[NumberEntity] = [
         IntergasPresetTemperature(coordinator, hid, preset["preset_id"])
         for hid, bundle in coordinator.data.items()
@@ -34,7 +33,7 @@ async def async_setup_entry(
     entities += [
         IntergasMaxSupplyTemperature(coordinator, hid)
         for hid, bundle in coordinator.data.items()
-        if CH_TEMPERATURE in bundle.get("parameters", {})
+        if PARAM_MAX_SUPPLY_TEMPERATURE in bundle.get("parameters", {})
     ]
     async_add_entities(entities)
 
@@ -107,18 +106,18 @@ class IntergasMaxSupplyTemperature(IntergasEntity, NumberEntity):
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_native_step = 1
     _attr_mode = NumberMode.BOX
-    _attr_name = "Maximum supply temperature"
+    _attr_translation_key = "max_supply_temperature"
     _attr_icon = "mdi:thermometer-chevron-up"
 
     def __init__(self, coordinator: IntergasCoordinator, heater_id: str):
         super().__init__(coordinator, heater_id)
-        self._attr_unique_id = f"{heater_id}_param_{CH_TEMPERATURE}"
+        self._attr_unique_id = f"{heater_id}_param_{PARAM_MAX_SUPPLY_TEMPERATURE}"
         self._pending: int | None = None
         self._pending_until = 0.0
 
     @property
     def _param(self) -> dict:
-        return self._bundle.get("parameters", {}).get(CH_TEMPERATURE, {})
+        return self._bundle.get("parameters", {}).get(PARAM_MAX_SUPPLY_TEMPERATURE, {})
 
     @property
     def available(self) -> bool:
@@ -150,7 +149,7 @@ class IntergasMaxSupplyTemperature(IntergasEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         try:
-            await self.coordinator.client.set_parameter(self._heater_id, CH_TEMPERATURE, int(round(value)))
+            await self.coordinator.client.set_parameter(self._heater_id, PARAM_MAX_SUPPLY_TEMPERATURE, int(round(value)))
         except IntergasApiError as err:
             raise HomeAssistantError(f"Changing the maximum supply temperature failed: {err}") from err
         self._pending = int(round(value))
