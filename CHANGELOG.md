@@ -19,8 +19,8 @@
 
 - New number entity **Maximum supply temperature**: the boiler's maximum
   central-heating flow temperature (parameter P050, the same setting as in the
-  app's device settings). Lowering it (for example from the factory 80 °C to
-  60 °C) makes the boiler run longer and condense better. Range comes from the
+  app's device settings). A lower value makes the boiler run
+  longer and condense better. Range comes from the
   boiler (usually 10-90 °C); attributes show the display code, the factory
   value and the parameter status.
 
