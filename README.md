@@ -24,7 +24,7 @@ Comfort Touch thermostat, single zone.
 | Set target temperature | ✅ tested |
 | HVAC mode / action (read) | ✅ |
 | Switch between manual (`heat`) and week schedule (`auto`) | ✅ |
-| Turn the boiler off / on (`off` mode) | ✅ |
+| Turn the boiler off / on (`off` mode) | ⚠️ implemented (same request as the app), not yet confirmed on a real boiler |
 | Maximum supply temperature (P050) | ✅ |
 | Presets (select from the climate card, edit their temperatures) | ✅ |
 | Next schedule change (climate attributes) | ✅ |
