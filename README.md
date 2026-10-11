@@ -1,14 +1,31 @@
-# Intergas Orion (Comfort Touch) for Home Assistant
+# Intergas Comfort Touch (new gateway) for Home Assistant
 
 A Home Assistant custom integration for Intergas boilers connected through the
-**new** Intergas gateway (the MQTT-based "Orion" platform, `ARCH_2_0`), as used
-by the Intergas Comfort Touch app.
+**current Intergas gateway**: the one supplied with the Intergas Comfort Touch
+smart thermostat (for example "Comfort Touch slimme thermostaat incl.
+Gateway") and controlled with the Intergas Comfort Touch app.
 
-The built-in [`incomfort`](https://www.home-assistant.io/integrations/incomfort/)
-integration only works with the older LAN2RF gateway, which has a local HTTP
-API. The new gateway has no local API at all: it only talks to the Intergas
-cloud. This integration therefore uses the same cloud API as the Comfort Touch
-app.
+This gateway has no local interface: it only talks to the Intergas cloud. The
+integration therefore uses the same cloud API as the Comfort Touch app, and
+needs your Comfort Touch account.
+
+Have the **older LAN2RF gateway** instead? Use Home Assistant's built-in
+[`incomfort`](https://www.home-assistant.io/integrations/incomfort/)
+integration, which talks to that gateway directly on your network.
+
+### Which gateway do I have?
+
+- **Easiest:** add this integration. It checks your Comfort Touch account
+  first, and if the account belongs to the older platform it stops and tells
+  you to use `incomfort`.
+- **On your network:** open `http://<gateway IP address>/` in a browser. The
+  older LAN2RF gateway shows status pages there (that is what `incomfort`
+  reads); the current gateway shows nothing.
+
+Both gateways can be connected with a network cable, so the connection type
+does not tell them apart. Internally the API calls the new platform "Orion"
+(`ARCH_2_0`) and the old one `ARCH_1_0`; you will only see those names in
+diagnostics.
 
 > **Unofficial.** This project is not affiliated with, endorsed by or supported
 > by Intergas. The API is undocumented and may change without notice.
