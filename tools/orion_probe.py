@@ -65,6 +65,8 @@ def request(method, path, token=None, body=None):
                 print(f"# rate limited, waiting {wait}s ...", file=sys.stderr)
                 time.sleep(wait)
                 continue
+            if path == "/v1/accounts/platform_check":
+                return err.code, None
             return err.code, _decode(err.read().decode(errors="replace"))
         except urllib.error.URLError as err:
             return 0, f"<request failed: {err.reason}>"
